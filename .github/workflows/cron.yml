@@ -1,0 +1,126 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Proof of Alpha — Cron Jobs
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Setup:
+#   1. Di GitHub repo kamu → Settings → Secrets and variables → Actions
+#   2. Tambah 2 secrets:
+#      APP_URL        = https://proof-of-alpha-eosin.vercel.app  (URL production kamu)
+#      ADMIN_CRON_KEY = (value yang sama dengan di .env)
+#
+# Jadwal (UTC):
+#   - 00:00 UTC setiap hari  → vault snapshot (hitung poin harian)
+#   - 23:58 UTC setiap hari  → judge hunt round (tentukan pemenang)
+#   - 01:00 UTC setiap Minggu → weekly settle (distribusi $PROOF)
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: POA Cron Jobs
+
+on:
+  schedule:
+    # Vault snapshot — tiap hari jam 00:00 UTC
+    - cron: '0 0 * * *'
+    # Judge hunt round — tiap hari jam 23:58 UTC  
+    - cron: '58 23 * * *'
+    # Weekly settle — tiap Minggu jam 01:00 UTC
+    - cron: '0 1 * * 0'
+
+  # Bisa dijalankan manual dari GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Job to run manually'
+        required: true
+        default: 'snapshot'
+        type: choice
+        options:
+          - snapshot
+          - judge
+          - settle
+          - all
+
+jobs:
+  # ── VAULT SNAPSHOT (daily 00:00 UTC) ───────────────────────────────────────
+  vault-snapshot:
+    name: Daily Vault Snapshot
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'snapshot' || github.event.inputs.job == 'all') ||
+      github.event.schedule == '0 0 * * *'
+    steps:
+      - name: Call /api/vault/snapshot
+        run: |
+          echo "Running vault snapshot at $(date -u)"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.APP_URL }}/api/vault/snapshot" \
+            -H "x-admin-key: ${{ secrets.ADMIN_CRON_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 90 \
+            --connect-timeout 15 \
+            --retry 2 \
+            --retry-delay 5)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Vault snapshot failed with status $HTTP_CODE"
+            exit 1
+          fi
+          echo "Vault snapshot completed successfully"
+
+  # ── JUDGE HUNT ROUND (daily 23:58 UTC) ────────────────────────────────────
+  judge-round:
+    name: Judge Daily Hunt Round
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'judge' || github.event.inputs.job == 'all') ||
+      github.event.schedule == '58 23 * * *'
+    steps:
+      - name: Call /api/hunt/judge
+        run: |
+          echo "Judging round at $(date -u)"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.APP_URL }}/api/hunt/judge" \
+            -H "x-admin-key: ${{ secrets.ADMIN_CRON_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 90 \
+            --connect-timeout 15 \
+            --retry 2 \
+            --retry-delay 5)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          # 409 = already judged, itu ok
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "409" ]; then
+            echo "ERROR: Judge failed with status $HTTP_CODE"
+            exit 1
+          fi
+          echo "Round judged successfully"
+
+  # ── WEEKLY SETTLE (every Sunday 01:00 UTC) ─────────────────────────────────
+  weekly-settle:
+    name: Weekly $PROOF Settlement
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'settle' || github.event.inputs.job == 'all') ||
+      github.event.schedule == '0 1 * * 0'
+    steps:
+      - name: Call /api/weekly/settle
+        run: |
+          echo "Running weekly settle at $(date -u)"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.APP_URL }}/api/weekly/settle" \
+            -H "x-admin-key: ${{ secrets.ADMIN_CRON_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120 \
+            --connect-timeout 15 \
+            --retry 2 \
+            --retry-delay 5)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Weekly settle failed with status $HTTP_CODE"
+            exit 1
+          fi
+          echo "Weekly settle completed successfully"

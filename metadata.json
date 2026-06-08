@@ -1,0 +1,12 @@
+{
+  "name": "Proof of Alpha",
+  "description": "Proof of Alpha: Precision blockchain monitoring station providing live data streaming and forensic auditing for EVM networks. Features zero-latency transaction tracking and network health diagnostics in a high-fidelity dashboard.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,79 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper functions ─────────────────────────────────────────────────────
+
+    // Returns true if the requesting user's wallet matches the document wallet.
+    // walletAddress in path/doc is always lowercase; request.auth.uid is the
+    // wallet address provided by the Firebase Auth custom token (set by backend).
+    function isOwner(walletAddr) {
+      return request.auth != null
+          && request.auth.uid.lower() == walletAddr.lower();
+    }
+
+    // Backend service account bypasses all rules via Admin SDK — these rules
+    // only apply to direct client SDK access.
+
+    // ─── rounds/{date} ────────────────────────────────────────────────────────
+    match /rounds/{date} {
+      // Anyone can read round data (public leaderboard)
+      allow read: if true;
+
+      // Only authenticated backend writes (Admin SDK bypasses, but lock direct writes)
+      allow write: if false;
+
+      // submissions sub-collection (handled as array field on the round doc)
+      // No separate sub-collection needed — submissions are embedded in the round doc.
+    }
+
+    // ─── points/{walletAddress} ───────────────────────────────────────────────
+    match /points/{walletAddress} {
+      // User can read their own points; others cannot see individual balances
+      allow read: if isOwner(walletAddress);
+
+      // Only backend (Admin SDK) can write points
+      allow write: if false;
+    }
+
+    // ─── vault/{walletAddress} ────────────────────────────────────────────────
+    match /vault/{walletAddress} {
+      // User can read their own vault positions
+      allow read: if isOwner(walletAddress);
+
+      // Only backend writes vault data (after on-chain tx confirmed)
+      allow write: if false;
+    }
+
+    // ─── users/{walletAddress} ────────────────────────────────────────────────
+    match /users/{walletAddress} {
+      // Anyone can read user profiles (public display names, stats)
+      allow read: if true;
+
+      // User can update ONLY their displayName field
+      allow update: if isOwner(walletAddress)
+                    && request.resource.data.keys().hasOnly(['displayName'])
+                    && request.resource.data.displayName is string
+                    && request.resource.data.displayName.size() <= 32;
+
+      // Creation and all other field updates go through backend only
+      allow create, delete: if false;
+    }
+
+    // ─── claims/{weekOf}/{walletAddress} ─────────────────────────────────────
+    match /claims/{weekOf}/{walletAddress} {
+      // User can read their own claim record
+      allow read: if isOwner(walletAddress);
+
+      // Writing (setting claimed=true, txHash) is done by backend after on-chain
+      // confirmation.  Direct client writes are not permitted.
+      allow write: if false;
+    }
+
+    // ─── Default: deny everything else ───────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
