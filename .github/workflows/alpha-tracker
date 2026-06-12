@@ -1,0 +1,93 @@
+name: Alpha Signal Tracker
+
+on:
+  schedule:
+    - cron: '10 9 * * *'
+    - cron: '40 11 * * *'
+    - cron: '5 13 * * *'
+    - cron: '35 14 * * *'
+    - cron: '0 16 * * *'
+    - cron: '25 17 * * *'
+    - cron: '50 19 * * *'
+    - cron: '15 21 * * *'
+  workflow_dispatch:
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Roll
+        id: gate
+        run: |
+          R=$((RANDOM % 8))
+          # Keep 4-7 out of 8 (drop ~1)
+          [ $R -lt 1 ] && echo "run=false" >> $GITHUB_OUTPUT || echo "run=true" >> $GITHUB_OUTPUT
+
+      - name: Checkout
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Fetch Celo network data
+        if: steps.gate.outputs.run == 'true'
+        id: celo
+        run: |
+          # Celo public RPC — eth_blockNumber
+          BLOCK_HEX=$(curl -sf \
+            -X POST https://forno.celo.org \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+            | python3 -c "
+          import sys,json
+          try:
+            r=json.load(sys.stdin)
+            print(int(r['result'],16))
+          except: print('')
+          " || echo '')
+
+          echo "block=$BLOCK_HEX" >> $GITHUB_OUTPUT
+
+      - name: Pick message
+        if: steps.gate.outputs.run == 'true'
+        id: msg
+        run: |
+          B="${{ steps.celo.outputs.block }}"
+          DATE=$(date -u +"%Y-%m-%d")
+          MSGS=(
+            "alpha: record on-chain signal at block $B"
+            "data: Celo forensics snapshot $DATE"
+            "update: alpha score reference — block $B"
+            "chore: proof-of-alpha chain state $DATE"
+            "data: transaction forensics anchor $B"
+            "alpha: Celo network pulse $DATE"
+            "update: arena scoring context — $DATE"
+            "chore: alpha vault block reference $B"
+            "data: Celo mainnet state $DATE"
+            "alpha: on-chain evidence log $B"
+          )
+          IDX=$((RANDOM % ${#MSGS[@]}))
+          echo "text=${MSGS[$IDX]}" >> $GITHUB_OUTPUT
+
+      - name: Write signal file
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          mkdir -p .alpha
+          cat > .alpha/chain-signal.json << EOF
+          {
+            "recorded_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "celo_block": "${{ steps.celo.outputs.block }}",
+            "network": "celo-mainnet",
+            "rpc": "forno.celo.org",
+            "module": "Alpha Arena forensics context"
+          }
+          EOF
+
+      - name: Commit
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          git config user.name "0xward"
+          git config user.email "0xward.dev@gmail.com"
+          git add .alpha/chain-signal.json
+          git diff --staged --quiet && echo "clean" && exit 0
+          git commit -m "${{ steps.msg.outputs.text }}"
+          git push
