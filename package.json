@@ -22,7 +22,7 @@
     "date-fns": "4.1.0",
     "dotenv": "17.2.3",
     "events": "3.3.0",
-    "express": "4.22.0",
+    "express": "4.22.2",
     "groq-sdk": "0.9.1",
     "lucide-react": "0.546.0",
     "motion": "12.38.0",
@@ -30,10 +30,10 @@
     "react-dom": "19.0.1",
     "tailwind-merge": "3.6.0",
     "viem": "2.50.3",
-    "vite": "6.2.4",
+    "vite": "6.2.5",
     "vite-plugin-node-polyfills": "0.27.0",
     "wagmi": "3.6.15",
-    "firebase-admin": "13.4.0",
+    "firebase-admin": "13.7.0",
     "ethers": "6.14.3"
   },
   "devDependencies": {
