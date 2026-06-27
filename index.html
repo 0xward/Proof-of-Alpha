@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover ensures content fills the full screen on iOS/Android in-app browsers -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#050505" />
+    <title>Proof of Alpha</title>
+    <style>
+      /* Ensure body fills the full dynamic viewport on all mobile browsers */
+      html, body, #root {
+        min-height: 100dvh;
+        min-height: -webkit-fill-available;
+        background: #050505;
+      }
+      /* Prevent content jump from address bar show/hide */
+      * { box-sizing: border-box; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

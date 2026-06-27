@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  /* Font clarity — cegah blur dari subpixel rendering */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-[#050505] font-mono selection:bg-[#FFB800] selection:text-[#050505] text-[#FFB800];
+    font-feature-settings: "liga" 1, "kern" 1;
+    /* Pastikan tidak ada transform yang bikin blur */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Teks kecil (tracking-widest, uppercase) — pastikan crisp */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-[#050505];
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-[#FFB800]/20 border border-transparent bg-clip-padding;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-[#FFB800]/40;
+}
+
+/* Custom Utilities from Design */
+@layer components {
+  .terminal-card {
+    @apply bg-[#0a0a0a] border border-[#FFB800]/20;
+  }
+  
+  .terminal-input-wrap {
+    @apply bg-[#050505] border border-[#FFB800]/20 focus-within:border-[#FFB800]/50 transition-colors;
+  }
+
+  .glow-button {
+    @apply shadow-[0_0_20px_rgba(255,184,0,0.2)] hover:shadow-[0_0_35px_rgba(255,184,0,0.4)] active:scale-95 transition-all;
+  }
+}
+
+/* Animations */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes ticker {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-ticker {
+  animation: ticker 25s linear infinite;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
+@keyframes rgb-run {
+  0% { background-position: 0% 50%; box-shadow: 0 0 8px rgba(255, 0, 0, 0.5); border-color: rgba(255,0,0,0.5); }
+  16% { background-position: 16% 50%; box-shadow: 0 0 8px rgba(255, 255, 0, 0.5); border-color: rgba(255,255,0,0.5); }
+  33% { background-position: 33% 50%; box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); border-color: rgba(0,255,0,0.5); }
+  50% { background-position: 50% 50%; box-shadow: 0 0 8px rgba(0, 255, 255, 0.5); border-color: rgba(0,255,255,0.5); }
+  66% { background-position: 66% 50%; box-shadow: 0 0 8px rgba(0, 0, 255, 0.5); border-color: rgba(0,0,255,0.5); }
+  83% { background-position: 83% 50%; box-shadow: 0 0 8px rgba(255, 0, 255, 0.5); border-color: rgba(255,0,255,0.5); }
+  100% { background-position: 100% 50%; box-shadow: 0 0 8px rgba(255, 0, 0, 0.5); border-color: rgba(255,0,0,0.5); }
+}
+
+.animate-rgb-focus {
+  border: 1px solid transparent;
+  background: 
+    linear-gradient(#050505, #050505) padding-box,
+    linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000) border-box;
+  background-size: 200% 100%;
+  animation: rgb-run 3s linear infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes glow-gold {
+  0%, 100% { text-shadow: 0 0 5px #FFD700, 0 0 10px #FFD700, 0 0 20px #FFD700; color: #FFD700; }
+  50% { text-shadow: 0 0 10px #FFB800, 0 0 20px #FFB800, 0 0 40px #FFB800; color: #FFB800; }
+}
+
+@keyframes glow-blue {
+  0%, 100% { text-shadow: 0 0 5px #00BFFF, 0 0 10px #00BFFF, 0 0 20px #00BFFF; color: #00BFFF; }
+  50% { text-shadow: 0 0 10px #1E90FF, 0 0 20px #1E90FF, 0 0 40px #1E90FF; color: #1E90FF; }
+}
+
+@keyframes glow-gray {
+  0%, 100% { text-shadow: 0 0 5px #D1D5DB, 0 0 10px #D1D5DB, 0 0 20px #D1D5DB; color: #D1D5DB; }
+  50% { text-shadow: 0 0 10px #9CA3AF, 0 0 20px #9CA3AF, 0 0 40px #9CA3AF; color: #9CA3AF; }
+}
+
+.animate-glow-gold { animation: glow-gold 2s ease-in-out infinite; }
+.animate-glow-blue { animation: glow-blue 2s ease-in-out infinite; }
+.animate-glow-gray { animation: glow-gray 2s ease-in-out infinite; }
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.scanline::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 184, 0, 0.1);
+  box-shadow: 0 0 20px rgba(255, 184, 0, 0.5);
+  animation: scanline 10s linear infinite;
+  pointer-events: none;
+  z-index: 50;
+}
