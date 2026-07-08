@@ -1,6 +1,6 @@
 {
-  "recorded_at": "2026-07-08T20:48:09Z",
-  "celo_block": "71642930",
+  "recorded_at": "2026-07-08T22:15:29Z",
+  "celo_block": "71648169",
   "network": "celo-mainnet",
   "rpc": "forno.celo.org",
   "module": "Alpha Arena forensics context"
