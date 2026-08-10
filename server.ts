@@ -2,32 +2,68 @@ import express from 'express';
 import path from 'path';
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { ethers } from 'ethers';
 
 dotenv.config();
 
-// ─── Firebase Admin init ─────────────────────────────────────────────────────
-if (!getApps().length) {
-  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
-  initializeApp({
-    credential: cert({
-      projectId:   process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey,
-    }),
-  });
+// ─── Database (Firebase or in-memory for local dev) ───────────────────────────
+const useMemoryDb =
+  process.env.USE_MEMORY_DB === "1" ||
+  process.env.USE_MEMORY_DB === "true" ||
+  !process.env.FIREBASE_PROJECT_ID;
+
+let db: any;
+let Timestamp: any;
+let FieldValue: any;
+
+if (useMemoryDb) {
+  const mem = await import("./dev-memory-db.js");
+  db = mem.memoryDb;
+  Timestamp = mem.MemoryTimestamp;
+  FieldValue = mem.MemoryFieldValue;
+  console.warn("[dev] USE_MEMORY_DB — hunt/profile state is in-process only");
+} else {
+  const { initializeApp, cert, getApps } = await import("firebase-admin/app");
+  const firestore = await import("firebase-admin/firestore");
+  if (!getApps().length) {
+    const privateKey = (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey,
+      }),
+    });
+  }
+  db = firestore.getFirestore();
+  Timestamp = firestore.Timestamp;
+  FieldValue = firestore.FieldValue;
 }
-const db = getFirestore();
 
 const app = express();
 app.use(express.json());
 
-function getGroq(): Groq {
+function getGroq(): Groq | null {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY is not configured.');
+  if (!apiKey) {
+    if (useMemoryDb) return null;
+    throw new Error('GROQ_API_KEY is not configured.');
+  }
   return new Groq({ apiKey });
+}
+
+function devForensicFallback(hash: string) {
+  const n = parseInt(hash.slice(-2), 16) || 35;
+  const score = Math.min(85, Math.max(25, 30 + (n % 50)));
+  const tier = score >= 76 ? 'God Mode' : score >= 41 ? 'Elite Scout' : 'Initiate';
+  return {
+    score,
+    tier,
+    summary: 'LOCAL DEV MOCK — ADD GROQ_API_KEY FOR REAL AI SCORING.',
+    signals: ['DEV_MOCK', 'MEMORY_DB'],
+    riskFlags: [] as string[],
+    verdict: 'MOCK FORENSIC ANALYSIS COMPLETE.',
+  };
 }
 
 const VAULT_ASSETS: Record<string, { address: string; decimals: number; ptsPerTokenPerDay: number }> = {
@@ -224,12 +260,23 @@ app.post('/api/hunt/submit', async (req, res) => {
 
 // ─── POST /api/hunt/submit-v2 ─────────────────────────────────────────────────
 app.post('/api/hunt/submit-v2', async (req, res) => {
-  const { txHash, walletAddress } = req.body as { txHash?: string; walletAddress?: string };
+  const { txHash, walletAddress, displayName, isAgent, agentSource, deployId } = req.body as {
+    txHash?: string;
+    walletAddress?: string;
+    displayName?: string;
+    isAgent?: boolean;
+    agentSource?: string;
+    deployId?: string;
+  };
   if (!txHash || !walletAddress) return res.status(400).json({ error: 'txHash and walletAddress required.' });
 
   const wallet = walletAddress.toLowerCase();
   const hash   = txHash.toLowerCase().trim();
   const today  = todayUTC();
+  const cleanName = typeof displayName === 'string' ? displayName.trim().slice(0, 32) : '';
+  const agentFlag = isAgent === true || isAgent === 'true';
+  const agentSrc  = typeof agentSource === 'string' ? agentSource.trim().slice(0, 32) : 'goodagent';
+  const agentDeployId = typeof deployId === 'string' ? deployId.trim().slice(0, 64) : '';
 
   const roundRef  = db.collection('rounds').doc(today);
   const roundSnap = await roundRef.get();
@@ -265,41 +312,93 @@ app.post('/api/hunt/submit-v2', async (req, res) => {
   let aiScore = 35, aiTier = 'Initiate', aiSummary = 'Analysis complete.', aiSignals: string[] = [], aiVerdict = 'TRANSACTION ANALYZED.', aiRiskFlags: string[] = [];
   try {
     const groq = getGroq();
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: 'You are ALPHA-9, elite blockchain forensic AI. Analyze the tx and return ONLY JSON:\n{"score":<1-100>,"tier":"God Mode"|"Elite Scout"|"Initiate","summary":"<2-3 sentences UPPERCASE>","signals":["s1","s2","s3"],"riskFlags":[],"verdict":"<ONE uppercase sentence>"}' },
-        { role: 'user',   content: `Analyze:\n${txContext}` },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-    });
-    const raw    = completion.choices[0]?.message?.content ?? '{}';
-    const parsed = extractJson(raw);
-    aiScore     = Math.min(100, Math.max(1, parseInt(String(parsed.score)) || 35));
-    aiTier      = typeof parsed.tier === 'string' && ['God Mode','Elite Scout','Initiate'].includes(parsed.tier) ? parsed.tier : aiScore >= 76 ? 'God Mode' : aiScore >= 41 ? 'Elite Scout' : 'Initiate';
-    aiSummary   = typeof parsed.summary === 'string' ? parsed.summary : aiSummary;
-    aiSignals   = Array.isArray(parsed.signals)   ? parsed.signals   : [];
-    aiVerdict   = typeof parsed.verdict === 'string' ? parsed.verdict : aiVerdict;
-    aiRiskFlags = Array.isArray(parsed.riskFlags) ? parsed.riskFlags : [];
+    if (!groq) {
+      const mock = devForensicFallback(hash);
+      aiScore = mock.score;
+      aiTier = mock.tier;
+      aiSummary = mock.summary;
+      aiSignals = mock.signals;
+      aiVerdict = mock.verdict;
+      aiRiskFlags = mock.riskFlags;
+    } else {
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'You are ALPHA-9, elite blockchain forensic AI. Analyze the tx and return ONLY JSON:\n{"score":<1-100>,"tier":"God Mode"|"Elite Scout"|"Initiate","summary":"<2-3 sentences UPPERCASE>","signals":["s1","s2","s3"],"riskFlags":[],"verdict":"<ONE uppercase sentence>"}' },
+          { role: 'user',   content: `Analyze:\n${txContext}` },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+      const raw    = completion.choices[0]?.message?.content ?? '{}';
+      const parsed = extractJson(raw);
+      aiScore     = Math.min(100, Math.max(1, parseInt(String(parsed.score)) || 35));
+      aiTier      = typeof parsed.tier === 'string' && ['God Mode','Elite Scout','Initiate'].includes(parsed.tier) ? parsed.tier : aiScore >= 76 ? 'God Mode' : aiScore >= 41 ? 'Elite Scout' : 'Initiate';
+      aiSummary   = typeof parsed.summary === 'string' ? parsed.summary : aiSummary;
+      aiSignals   = Array.isArray(parsed.signals)   ? parsed.signals   : [];
+      aiVerdict   = typeof parsed.verdict === 'string' ? parsed.verdict : aiVerdict;
+      aiRiskFlags = Array.isArray(parsed.riskFlags) ? parsed.riskFlags : [];
+    }
   } catch (e) { console.error('Groq submit-v2:', e); }
 
-  const submission = { wallet, txHash: hash, aiScore, aiVerdict, aiSummary, aiTier, aiSignals, aiRiskFlags, network, timestamp: Timestamp.now() };
+  const submission: Record<string, unknown> = { wallet, txHash: hash, aiScore, aiVerdict, aiSummary, aiTier, aiSignals, aiRiskFlags, network, timestamp: Timestamp.now() };
+  if (cleanName) submission.displayName = cleanName;
+  if (agentFlag) {
+    submission.isAgent = true;
+    submission.agentSource = agentSrc;
+    if (agentDeployId) submission.deployId = agentDeployId;
+  }
 
   await roundRef.set({ submissions: FieldValue.arrayUnion(submission), totalSubmissions: FieldValue.increment(1), judged: roundData?.judged ?? false }, { merge: true });
 
   const userRef  = db.collection('users').doc(wallet);
   const userSnap = await userRef.get();
+  const userPatch: Record<string, unknown> = {};
+  if (cleanName) userPatch.displayName = cleanName;
+  if (agentFlag) {
+    userPatch.isAgent = true;
+    userPatch.agentSource = agentSrc;
+    if (agentDeployId) userPatch.deployId = agentDeployId;
+  }
   if (!userSnap.exists) {
-    await userRef.set({ displayName: `${wallet.slice(0,6)}...${wallet.slice(-4)}`, createdAt: Timestamp.now(), totalHuntsWon: 0, totalVaultDays: 0 });
+    await userRef.set({
+      displayName: cleanName || `${wallet.slice(0,6)}...${wallet.slice(-4)}`,
+      createdAt: Timestamp.now(),
+      totalHuntsWon: 0,
+      totalVaultDays: 0,
+      ...userPatch,
+    });
+  } else if (Object.keys(userPatch).length) {
+    await userRef.set(userPatch, { merge: true });
   }
 
   const freshSnap = await roundRef.get();
   const allSubs   = ((freshSnap.data()?.submissions ?? []) as any[]).sort((a: any, b: any) => b.aiScore - a.aiScore);
   const position  = allSubs.findIndex((s: any) => s.wallet === wallet && s.txHash === hash) + 1;
 
-  return res.json({ score: aiScore, tier: aiTier, verdict: aiVerdict, summary: aiSummary, signals: aiSignals, riskFlags: aiRiskFlags, position, network });
+  return res.json({ score: aiScore, tier: aiTier, verdict: aiVerdict, summary: aiSummary, signals: aiSignals, riskFlags: aiRiskFlags, position, network, displayName: cleanName || undefined, isAgent: agentFlag || undefined });
 });
+
+async function enrichRoundSubmission(s: any, rank: number) {
+  const userSnap = await db.collection('users').doc(s.wallet).get();
+  const user = userSnap.exists ? userSnap.data()! : {};
+  const displayName = s.displayName ?? user.displayName ?? `${s.wallet.slice(0, 6)}...${s.wallet.slice(-4)}`;
+  const isAgent = Boolean(s.isAgent ?? user.isAgent);
+  return {
+    rank,
+    wallet: s.wallet,
+    displayName,
+    isAgent,
+    agentSource: s.agentSource ?? user.agentSource ?? null,
+    deployId: s.deployId ?? user.deployId ?? null,
+    txHash: s.txHash,
+    aiScore: s.aiScore,
+    aiVerdict: s.aiVerdict,
+    aiTier: s.aiTier,
+    network: s.network,
+    timestamp: s.timestamp?._seconds ?? null,
+  };
+}
 
 // ─── GET /api/hunt/round ──────────────────────────────────────────────────────
 app.get('/api/hunt/round', async (_req, res) => {
@@ -308,10 +407,12 @@ app.get('/api/hunt/round', async (_req, res) => {
   const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
   const timeRemaining = Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
   const roundSnap = await db.collection('rounds').doc(today).get();
-  if (!roundSnap.exists) return res.json({ date: today, submissions: [], timeRemaining, judged: false, winner: null, totalSubmissions: 0 });
+  if (!roundSnap.exists) return res.json({ date: today, submissions: [], agents: [], timeRemaining, judged: false, winner: null, totalSubmissions: 0, agentCount: 0 });
   const data = roundSnap.data()!;
-  const submissions = ((data.submissions ?? []) as any[]).sort((a: any, b: any) => b.aiScore - a.aiScore).map((s: any, i: number) => ({ rank: i + 1, wallet: s.wallet, txHash: s.txHash, aiScore: s.aiScore, aiVerdict: s.aiVerdict, aiTier: s.aiTier, network: s.network, timestamp: s.timestamp?._seconds ?? null }));
-  return res.json({ date: today, submissions, timeRemaining, judged: data.judged ?? false, winner: data.winner ?? null, totalSubmissions: data.totalSubmissions ?? 0 });
+  const sorted = ((data.submissions ?? []) as any[]).sort((a: any, b: any) => b.aiScore - a.aiScore);
+  const submissions = await Promise.all(sorted.map((s, i) => enrichRoundSubmission(s, i + 1)));
+  const agents = submissions.filter(s => s.isAgent);
+  return res.json({ date: today, submissions, agents, timeRemaining, judged: data.judged ?? false, winner: data.winner ?? null, totalSubmissions: data.totalSubmissions ?? 0, agentCount: agents.length });
 });
 
 // ─── POST /api/hunt/judge ─────────────────────────────────────────────────────
@@ -628,6 +729,10 @@ app.post('/api/forensic', async (req, res) => {
       txContext = `NETWORK: ${network}\nTX: ${hash}\nFROM: ${tx.from}\nTO: ${tx.to??'(deploy)'}\nVALUE: ${valueEth}\nGAS LIMIT: ${gasLimit}\nGAS USED: ${gasUsed??'unknown'}\nGAS PRICE: ${gasPriceGwei} Gwei\nBLOCK: ${blockNum}\nSTATUS: ${status}\nCONTRACT CREATION: ${!tx.to}\nINPUT: ${inputSnip}\nLOGS: ${logs.length}\nLOG ADDRS: ${JSON.stringify(logAddrs)}\nSIGS: ${JSON.stringify(topics0)}\nNONCE: ${tx.nonce?parseInt(tx.nonce,16):'unknown'}`;
     } else { txContext = `NO ON-CHAIN DATA FOUND FOR: ${hash}`; }
     const groq = getGroq();
+    if (!groq) {
+      const mock = devForensicFallback(hash);
+      return res.json({ ...mock, cached: false });
+    }
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [

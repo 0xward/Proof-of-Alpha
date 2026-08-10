@@ -6,6 +6,7 @@ import { LandingPage } from './components/LandingPage';
 import { TermsPage } from './components/TermsPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { AlphaArena } from './components/AlphaArena';
+import { GoodAgentAgentsPanel } from './components/GoodAgentAgentsPanel';
 import { AlphaVault } from './components/AlphaVault';
 import { ProfilePage } from './components/ProfilePage';
 import { ClaimPage } from './components/ClaimPage';
@@ -20,7 +21,7 @@ declare global {
   }
 }
 
-export type AppView = 'terminal' | 'arena' | 'vault' | 'profile' | 'claim';
+export type AppView = 'terminal' | 'arena' | 'agents' | 'vault' | 'profile' | 'claim';
 
 function AppInner() {
   useAutoConnect();
@@ -53,6 +54,18 @@ function MainApp() {
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
+  useEffect(() => {
+    const onSwitch = (e: Event) => {
+      const view = (e as CustomEvent<AppView>).detail;
+      if (view) {
+        sessionStorage.setItem('poa_view', view);
+        setActiveView(view);
+      }
+    };
+    window.addEventListener('poa-switch-view', onSwitch);
+    return () => window.removeEventListener('poa-switch-view', onSwitch);
+  }, []);
+
   const handleEnter = (view: AppView = 'terminal') => {
     sessionStorage.setItem('poa_entered', 'true');
     sessionStorage.setItem('poa_view', view);
@@ -83,6 +96,7 @@ function MainApp() {
       <main className="pb-24">
         {activeView === 'terminal' && <ForensicTerminal />}
         {activeView === 'arena'    && <AlphaArena />}
+        {activeView === 'agents'   && <GoodAgentAgentsPanel />}
         {activeView === 'vault'    && <AlphaVault />}
         {activeView === 'profile'  && <ProfilePage />}
         {activeView === 'claim'    && <ClaimPage />}
