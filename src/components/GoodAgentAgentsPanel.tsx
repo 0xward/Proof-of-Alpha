@@ -15,6 +15,7 @@ import {
 } from '@goodagent/widget';
 import '@goodagent/widget/styles.css';
 import '../styles/poa-widget-theme.css';
+import { PoAHuntSkillConfig } from './PoAHuntSkillConfig';
 
 function usePoAWidgetWallet() {
   const { address, isConnected } = useAccount();
@@ -50,7 +51,7 @@ export function GoodAgentAgentsPanel() {
         partnerId: 'proof-of-alpha',
         skillLabel: 'Alpha Hunt',
         defaultDisplayName: 'My Alpha Hunt Agent',
-        hideSkillConfig: true,
+        hideSkillConfig: false,
         deployHint:
           'Deploy an autonomous agent that hunts daily whale txs and submits to Alpha Hunt. Your wallet owns it — GoodAgent runs the bot.',
         fvCallbackUrl:
@@ -105,6 +106,11 @@ export function GoodAgentAgentsPanel() {
             wallet={wallet}
             config={config}
             className="poa-widget"
+            renderSkillConfig={({ skillId, config, onChange }) =>
+              skillId === POA_HUNT_SKILL_ID ? (
+                <PoAHuntSkillConfig config={config} onChange={onChange} />
+              ) : null
+            }
           />
         )}
       </div>
