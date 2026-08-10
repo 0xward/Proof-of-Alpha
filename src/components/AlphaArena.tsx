@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader2, Trophy, Zap, ExternalLink, AlertTriangle, Clock, Users, CheckCircle2 } from 'lucide-react';
+import { Loader2, Trophy, Zap, ExternalLink, AlertTriangle, Clock, Users, CheckCircle2, Bot } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
 interface Submission {
   rank: number;
   wallet: string;
+  displayName?: string;
+  isAgent?: boolean;
+  agentSource?: string | null;
+  deployId?: string | null;
   txHash: string;
   aiScore: number;
   aiVerdict: string;
@@ -17,10 +21,12 @@ interface Submission {
 interface RoundData {
   date: string;
   submissions: Submission[];
+  agents?: Submission[];
   timeRemaining: number;
   judged: boolean;
   winner: { wallet: string; txHash: string; score: number; decidedAt: any } | null;
   totalSubmissions: number;
+  agentCount?: number;
 }
 
 interface HuntResult {
@@ -66,6 +72,10 @@ function formatCountdown(seconds: number): string {
 
 function truncateWallet(w: string): string {
   return `${w.slice(0, 8)}...${w.slice(-4)}`;
+}
+
+function entryLabel(entry: Submission): string {
+  return entry.displayName?.trim() || truncateWallet(entry.wallet);
 }
 
 export function AlphaArena() {
@@ -242,7 +252,10 @@ export function AlphaArena() {
                 <div>
                   <div className="text-[10px] text-yellow-400/60 uppercase tracking-widest">ROUND WINNER</div>
                   <div className="text-xl font-black text-yellow-400 uppercase tracking-tight">
-                    {isWinner ? 'YOU WON! 🎉' : truncateWallet(round.winner.wallet)}
+                    {isWinner ? 'YOU WON! 🎉' : (() => {
+                      const w = round.submissions.find(s => s.wallet.toLowerCase() === round.winner!.wallet.toLowerCase());
+                      return w ? entryLabel(w) : truncateWallet(round.winner.wallet);
+                    })()}
                   </div>
                 </div>
                 <div className="ml-auto text-right">
@@ -431,6 +444,51 @@ export function AlphaArena() {
         </div>
       )}
 
+      {/* ── DEPLOY AI HUNTER CTA ───────────────────────────────────────────── */}
+      <div className="border border-cyan-400/20 bg-cyan-400/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div className="text-[9px] text-cyan-400/50 uppercase tracking-widest mb-1">// GOODAGENT</div>
+          <div className="text-sm font-black text-cyan-300 uppercase">Deploy an autonomous Alpha Hunt agent</div>
+          <div className="text-[10px] text-cyan-400/40 uppercase tracking-wide mt-1">
+            Bots auto-submit daily and show on this leaderboard with an AI badge
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            sessionStorage.setItem('poa_view', 'agents');
+            window.dispatchEvent(new CustomEvent('poa-switch-view', { detail: 'agents' }));
+          }}
+          className="shrink-0 border border-cyan-400/40 text-cyan-300 px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-cyan-400/10 transition-colors"
+        >
+          AI_AGENTS →
+        </button>
+      </div>
+
+      {/* ── AI AGENTS STRIP ─────────────────────────────────────────────────── */}
+      {(round?.agentCount ?? round?.agents?.length ?? 0) > 0 && (
+        <div className="border border-cyan-400/25 bg-[#050505] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Bot className="w-4 h-4 text-cyan-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+              GOODAGENT AI HUNTERS · {round?.agentCount ?? round?.agents?.length ?? 0} ACTIVE
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(round?.agents ?? round?.submissions.filter(s => s.isAgent)).map(entry => (
+              <div
+                key={entry.txHash}
+                className="border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 flex items-center gap-2"
+              >
+                <span className="text-[10px] font-black text-cyan-300 uppercase">{entryLabel(entry)}</span>
+                <span className="text-[8px] bg-cyan-400/20 text-cyan-300 px-1.5 py-0.5 uppercase tracking-widest">AI</span>
+                <span className="text-[9px] text-cyan-400/50">#{entry.rank} · {entry.aiScore}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── LIVE LEADERBOARD ────────────────────────────────────────────────── */}
       <div className="border border-[#FFB800]/20 bg-[#050505]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#FFB800]/10">
@@ -467,14 +525,20 @@ export function AlphaArena() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className={`text-[10px] font-mono ${isMe ? 'text-[#FFB800]' : 'text-[#FFB800]/60'}`}>
-                        {truncateWallet(entry.wallet)}
+                        {entryLabel(entry)}
                       </span>
+                      {entry.isAgent && (
+                        <span className="text-[8px] bg-cyan-400/15 text-cyan-300 px-1.5 py-0.5 uppercase tracking-widest flex items-center gap-1">
+                          <Bot className="w-2.5 h-2.5" /> AI
+                        </span>
+                      )}
                       {isMe && (
                         <span className="text-[8px] bg-[#FFB800]/20 text-[#FFB800] px-1.5 py-0.5 uppercase tracking-widest">
                           YOU
                         </span>
                       )}
                     </div>
+                    <div className="text-[8px] text-[#FFB800]/15 font-mono mb-0.5">{truncateWallet(entry.wallet)}</div>
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] text-[#FFB800]/20 font-mono">{entry.txHash.slice(0, 16)}...</span>
                       <span className="text-[8px] text-[#FFB800]/15 uppercase">{entry.network}</span>

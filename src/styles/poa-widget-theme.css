@@ -1,0 +1,305 @@
+/**
+ * Proof of Alpha — GoodAgent widget theme overrides.
+ * Scoped under .poa-widget-shell so the npm widget stays unchanged.
+ */
+
+.poa-widget-shell {
+  --poa-gold: #ffb800;
+  --poa-gold-muted: rgba(255, 184, 0, 0.45);
+  --poa-gold-dim: rgba(255, 184, 0, 0.2);
+  --poa-cyan: #22d3ee;
+  --poa-bg: #050505;
+  --poa-surface: #0a0a0a;
+  --poa-panel: #080808;
+}
+
+.poa-widget-shell .ga-widget.poa-widget {
+  --ga-bg: var(--poa-bg);
+  --ga-surface: var(--poa-surface);
+  --ga-border: var(--poa-gold-dim);
+  --ga-text: var(--poa-gold);
+  --ga-muted: var(--poa-gold-muted);
+  --ga-primary: var(--poa-gold);
+  --ga-primary-hover: #ffc933;
+  --ga-warn: #fbbf24;
+  --ga-error: #f87171;
+  --ga-ok: var(--poa-cyan);
+
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  background: var(--poa-panel);
+  border: 1px solid var(--poa-gold-dim);
+  border-radius: 0;
+  padding: 0;
+  max-width: none;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--poa-gold);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-muted,
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-field span,
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--poa-gold-muted);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-input,
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-select {
+  background: var(--poa-bg);
+  border: 1px solid var(--poa-gold-dim);
+  border-radius: 0;
+  color: var(--poa-gold);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-input:focus,
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-select:focus {
+  border-color: rgba(255, 184, 0, 0.45);
+  outline: none;
+  box-shadow: none;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-btn {
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--poa-surface);
+  border-color: var(--poa-gold-dim);
+  color: var(--poa-gold-muted);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-btn:hover:not(:disabled) {
+  border-color: rgba(255, 184, 0, 0.4);
+  color: var(--poa-gold);
+  background: rgba(255, 184, 0, 0.05);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-btn-primary {
+  background: var(--poa-gold);
+  border-color: var(--poa-gold);
+  color: var(--poa-bg);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-btn-primary:hover:not(:disabled) {
+  background: var(--ga-primary-hover);
+  border-color: var(--ga-primary-hover);
+  filter: brightness(1.05);
+}
+
+/* Tabs — match PoA header nav */
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-tabs {
+  gap: 0;
+  margin-bottom: 0;
+  padding: 0;
+  border-bottom: 1px solid rgba(255, 184, 0, 0.1);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-tab {
+  flex: 1;
+  border-radius: 0;
+  padding: 10px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 184, 0, 0.3);
+  background: transparent;
+  border-bottom: 2px solid transparent;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-tab-active {
+  background: rgba(255, 184, 0, 0.05);
+  color: var(--poa-gold);
+  border-bottom-color: var(--poa-gold);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-tab-attention {
+  color: var(--poa-cyan);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-section {
+  padding: 16px;
+  margin-bottom: 0;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-banner {
+  border-radius: 0;
+  border-color: rgba(255, 184, 0, 0.25);
+  background: rgba(255, 184, 0, 0.06);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-banner-warn {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-spinner {
+  border-color: var(--poa-gold-dim);
+  border-top-color: var(--poa-gold);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-deploy-orbit-ring-outer {
+  border-top-color: var(--poa-gold);
+  border-right-color: rgba(255, 184, 0, 0.35);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-deploy-orbit-ring-inner {
+  border-bottom-color: var(--poa-cyan);
+  border-left-color: rgba(34, 211, 238, 0.25);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-deploy-orbit-core {
+  background: radial-gradient(circle, rgba(255, 184, 0, 0.35), transparent 70%);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-deploy-rail-fill {
+  background: linear-gradient(90deg, var(--poa-gold), var(--poa-cyan));
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-deploy-dot-active .ga-widget-deploy-dot-mark {
+  background: var(--poa-gold);
+  box-shadow: 0 0 8px rgba(255, 184, 0, 0.5);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-deploy-dot-done .ga-widget-deploy-dot-mark {
+  background: var(--poa-cyan);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-stat {
+  background: var(--poa-bg);
+  border: 1px solid var(--poa-gold-dim);
+  border-radius: 0;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-stat-value {
+  color: var(--poa-gold);
+  font-weight: 800;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-settings-panel {
+  border-radius: 0;
+  border-color: var(--poa-gold-dim);
+  background: var(--poa-bg);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-log {
+  border-radius: 0;
+  background: var(--poa-bg);
+  border: 1px solid var(--poa-gold-dim);
+  color: rgba(255, 184, 0, 0.55);
+  font-size: 10px;
+}
+
+.poa-widget-shell .ga-widget.poa-widget a {
+  color: var(--poa-cyan);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-ok {
+  color: var(--poa-cyan);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-command {
+  border-color: var(--poa-gold-dim);
+  background: var(--poa-bg);
+  border-radius: 0;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-ribbon {
+  border-color: var(--poa-gold-dim);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-config-fields {
+  gap: 12px;
+}
+
+.poa-widget-shell .ga-widget.poa-widget code {
+  color: var(--poa-cyan);
+  background: rgba(34, 211, 238, 0.08);
+  border-radius: 0;
+  padding: 1px 4px;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-deck,
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-compact {
+  border-radius: 0;
+  border-color: var(--poa-gold-dim);
+  background: var(--poa-bg);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--poa-gold);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-sub,
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-metric-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--poa-gold-muted);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-metric {
+  border-radius: 0;
+  border: 1px solid var(--poa-gold-dim);
+  background: var(--poa-surface);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-metric-value {
+  color: var(--poa-gold);
+  font-weight: 800;
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-dash-verified {
+  color: var(--poa-cyan);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-btn-active {
+  border-color: rgba(34, 211, 238, 0.45);
+  background: rgba(34, 211, 238, 0.08);
+  color: var(--poa-cyan);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-settings-drawer {
+  border-radius: 0;
+  border-color: var(--poa-gold-dim);
+  background: var(--poa-bg);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-verify-step,
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-verify-card {
+  border-radius: 0;
+  border-color: var(--poa-gold-dim);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-verify-step-done {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.06);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-deploy-list-item {
+  border-radius: 0;
+  border-color: var(--poa-gold-dim);
+}
+
+.poa-widget-shell .ga-widget.poa-widget .ga-widget-hint {
+  color: var(--poa-gold-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

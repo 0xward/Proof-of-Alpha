@@ -12,6 +12,10 @@
 #   submissions (array of maps):
 #     - wallet        : string   (lowercase hex)
 #     - txHash        : string
+#     - displayName   : string?  (GoodAgent agent name or user-set label)
+#     - isAgent       : boolean? (true when submitted by GoodAgent skill)
+#     - agentSource   : string?  (e.g. "goodagent")
+#     - deployId      : string?  (GoodAgent deploy id)
 #     - aiScore       : number   (1–100)
 #     - aiVerdict     : string   (AI verdict sentence)
 #     - aiSummary     : string   (2–3 sentence summary)
@@ -69,6 +73,9 @@
 #
 # Fields:
 #   displayName    : string   (editable; default "0x1234...5678")
+#   isAgent        : boolean? (GoodAgent autonomous hunter)
+#   agentSource    : string?  (e.g. "goodagent")
+#   deployId       : string?  (GoodAgent deploy id)
 #   createdAt      : Timestamp
 #   totalHuntsWon  : number
 #   totalVaultDays : number   (sum of vault deposit days across all positions)

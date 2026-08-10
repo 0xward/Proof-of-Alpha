@@ -20,6 +20,7 @@ interface HeaderProps {
 const NAV_TABS: { id: AppView; label: string; short: string }[] = [
   { id: 'terminal', label: 'TERMINAL',    short: 'TRM' },
   { id: 'arena',    label: 'ALPHA_ARENA', short: 'ARN' },
+  { id: 'agents',   label: 'AI_AGENTS',   short: 'BOT' },
   { id: 'vault',    label: 'ALPHA_VAULT', short: 'VLT' },
   { id: 'claim',    label: 'CLAIM_$PROOF',short: 'CLM' },
 ];
