@@ -40,7 +40,10 @@ function usePoAWidgetWallet() {
 }
 
 const POA_HUNT_SKILL_ID = 'gaming/intelligence/proof_of_alpha_hunt';
-const POA_API_URL = 'https://proof-of-alpha-eosin.vercel.app';
+/** Public hunt API — set VITE_POA_API_URL on Vercel (e.g. testnet deploy URL). */
+const POA_API_URL =
+  (import.meta.env.VITE_POA_API_URL as string | undefined)?.trim() ||
+  'https://proof-of-alpha-testnet.vercel.app';
 
 export function GoodAgentAgentsPanel() {
   const wallet = usePoAWidgetWallet();
